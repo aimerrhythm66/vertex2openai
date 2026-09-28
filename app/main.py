@@ -1147,3 +1147,41 @@ except Exception as _e:
     print(f"WARN: 自定义路由未挂载: {type(_e).__name__}: {_e}")
     _tb.print_exc()
 # ==================================================================
+
+# ===== 启动时把「生图下发 system 指令」置为开启 =====
+def _pin_image_system_instruction():
+    try:
+        import os, re
+
+        _wd = '/app' if os.path.isdir('/app') else os.getcwd()
+        _want = {
+            "inject_system_instruction": True,    # 生图下发 system 指令 = 开
+            "inject_prefill_for_image": False,    # 生图也注入预填充 = 关（保持现状）
+        }
+
+        # (1) 同步改 config.py 的 DEFAULT_SETTINGS，保证刷新后读到的就是新值
+        _p = os.path.join(_wd, 'config.py')
+        if os.path.exists(_p):
+            _src = open(_p, encoding='utf-8').read()
+            for _k, _v in _want.items():
+                _lit = 'True' if _v is True else ('False' if _v is False else repr(_v))
+                _pat = re.compile(r'("%s"\s*:\s*)(?:True|False|"[^"]*"|\'[^\']*\')' % re.escape(_k))
+                _src, _n = _pat.subn(lambda m: m.group(1) + _lit, _src, count=1)
+                print('PATCH %-28s -> %-6s (%d 处)' % (_k, _lit, _n))
+            open(_p, 'w', encoding='utf-8').write(_src)
+
+        # (2) 写进运行态，控制台/接口立即读得到
+        from runtime_state import app_state
+        app_state.update_settings(dict(_want))
+        _eff = app_state.get_settings()
+        print('EFFECTIVE inject_system_instruction =', _eff.get('inject_system_instruction'))
+        print('EFFECTIVE inject_prefill_for_image =', _eff.get('inject_prefill_for_image'))
+        print('OK: [固定设置] 生图 system 指令已开启')
+    except Exception as _e:
+        import traceback
+        print('WARN: [固定设置] 应用失败:', type(_e).__name__, _e)
+        traceback.print_exc()
+
+
+app.router.on_startup.append(_pin_image_system_instruction)
+# ==================================================

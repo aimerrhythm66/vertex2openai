@@ -1,4 +1,4 @@
-﻿from typing import Optional
+from typing import Optional
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -63,7 +63,7 @@ DEFAULT_SETTINGS = {
     "thinking_g3_level": "",              # 空=按模型各自默认(3.6-flash=medium/pro=high/flash-lite=minimal)；也可强制 minimal|low|medium|high
     "thinking_g25_budget": -1,            # Gemini 2.5 默认思考预算: -1=动态, 0=关(仅flash), 或整数
     # 生图
-    "image_size": "4K",                   # 默认分辨率: 512|1K|2K|4K（按模型白名单校验）
+    "image_size": "2K",                   # 默认分辨率: 512|1K|2K|4K（按模型白名单校验）
     "image_aspect_ratio": "",             # 默认宽高比, ""=自动
     # 采样默认（客户端未显式传时使用；None=不注入）
     "default_temperature": None,
@@ -104,7 +104,7 @@ DEFAULT_SETTINGS = {
     #   off     = 关闭原生思考：压到该模型最低档 + 忽略前端 effort + 不回传思考
     #             （Studio/batchGraphql 忽略 includeThoughts，故 Cookie 通道会在响应侧剥离思考块）
     #   console = 忽略前端 effort，强制用控制台/该模型专属档位
-    "native_thinking_mode": "request",
+    "native_thinking_mode": "off",
     # —— 以下两个为上一版布尔开关，保留仅作向后兼容（新 UI 用 native_thinking_mode）——
     "thinking_force_console": False,
     "hide_thoughts": False,
@@ -120,10 +120,13 @@ DEFAULT_SETTINGS = {
     #   开 = 退回旧的 `{id}__thought__{base64}` 内嵌格式，供多进程/多副本部署使用
     # 生图请求是否下发 system_instruction（默认关，保持既有行为）。
     # 官方未禁止生图模型使用系统指令，但旧代码一直剥离；打开前请先真机验证目标模型。
-    "image_system_instruction": False,
+    # 本项就是控制台「生图下发 system 指令」那个开关。
+    "image_system_instruction": True,
     # 轻量前端（RikkaHub 等）注入：留空 = 不启用，酒馆用户不受影响。
-    # 这两项解决的是"前端本身没有预设系统"的场景，见 message_processing.apply_console_injection。
+    # 注意：这一项是 system 提示词**文本**（字符串），不是开关。
     "inject_system_instruction": "",
+    # 注入项按模型区分很常见：只给跑角色扮演的模型开，问答模型保持干净。
+    "inject_system_instruction_text": "",
     "inject_prefill": "",
     # 生图模型是否也注入预填充。实测预填充对生图有很强的引导力
     # （同一句"画一只猫"：无预填充→彩色写实照片；预填充承诺"纯黑白钢笔线稿"→真的输出线稿），
@@ -145,7 +148,7 @@ DEFAULT_SETTINGS = {
     #   （实测 gemini-2.5-pro 被路由到 asia-southeast1 → 404 not found）。
     # 改发带项目与区域的完整资源路径后同一模型 200 正常：
     #   projects/{project}/locations/{location}/publishers/google/models/{model}
-    # express_location 留空 = 保持旧行为（裸模型名）；填 global（推荐）或某区域即启用钉定。
+    # express_location 留空 = 保持既有的“后端自选”行为（裸模型名）；填 global（推荐）或某区域即启用钉定。
     # 项目 ID 直接取「通道与凭证」里填的那个（或环境变量 GOOGLE_PROJECT_ID）——
     # 一个人通常只有一个 Express 项目，没必要再单独配一份。
     # ⚠️ 项目必须是该 API Key 有权且已开启计费的项目，否则 403（实测换成别的项目会
@@ -154,7 +157,7 @@ DEFAULT_SETTINGS = {
     # 让后端自选区域会偶发 404。留空 = 回到"后端自选"的旧行为。
     # 钉定失败（项目不匹配/该区域无此模型）会自动退回裸模型名重试一次，见
     # api_helpers.is_location_pin_failure —— 所以这个默认值不会把任何人变糟。
-    "express_location": "global",
+    "express_location": "",
     # 按模型单独保存的参数覆盖：{ "模型ID": { 键: 值, ... } }
     # 仅覆盖“与模型相关”的参数（见 PER_MODEL_KEYS）；优先级 请求 > 模型专属 > 全局 > 内置。
     "model_overrides": {},

@@ -1134,3 +1134,16 @@ async def stream_logs_endpoint(request: Request, _auth: bool = Depends(require_a
 
 app.include_router(models_api.router)
 app.include_router(chat_api.router)
+
+# ===== 自定义扩展：补 OpenAI 生图端点 /v1/images/generations =====
+try:
+    import traceback as _tb
+
+    from xcustom.images_api import router as _images_router
+
+    app.include_router(_images_router)
+    print("OK: 已挂载自定义路由 /v1/images/generations")
+except Exception as _e:
+    print(f"WARN: 自定义路由未挂载: {type(_e).__name__}: {_e}")
+    _tb.print_exc()
+# ==================================================================
